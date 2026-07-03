@@ -1,0 +1,73 @@
+# Claude Harness Kit — CI template
+# Destination: .github/workflows/ci.yml
+#
+# Runs the three suites the harness treats as the definition of "done":
+# backend tests, frontend tests, typecheck+build. The kit's testing rule #10
+# ("a kit adoption without CI is running on goodwill") is satisfied by this
+# file being active.
+#
+# ADJUST BEFORE FIRST RUN:
+#   1. APP_DIR — path to the directory containing package.json (and src-tauri/).
+#      "." if your app is the repo root; "myApp" if nested.
+#   2. The Linux system-deps step — required because the `tauri` crate does
+#      not compile on ubuntu runners without WebKitGTK dev packages. If you
+#      prefer macOS runners (slower, costlier, no apt step needed), swap
+#      runs-on to macos-latest and delete that step.
+#   3. Clippy is warnings-as-errors. If adopting on an existing codebase with
+#      legacy warnings, change to `cargo clippy` bare first, then ratchet.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  APP_DIR: "."          # ← path containing package.json and src-tauri/
+
+jobs:
+  frontend:
+    name: Frontend (vitest + tsc/build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Typecheck + build
+        run: npm run build
+
+  backend:
+    name: Backend (cargo test + clippy)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}/src-tauri
+    steps:
+      - uses: actions/checkout@v4
+      # The tauri crate needs these to compile on Linux runners.
+      # Delete this step if you switch to macos-latest.
+      - name: Linux system deps for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ env.APP_DIR }}/src-tauri
+      - name: Tests
+        run: cargo test --lib
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --lib -- -D warnings
