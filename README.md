@@ -34,6 +34,7 @@ your codebase.** Everything else is designed to be copied.
 | `templates/ci.yml` | ✅ Yes → `.github/workflows/ci.yml` | Adjust the working-directory if your app is nested. |
 | `templates/pull_request_template.md` | ✅ Yes → `.github/pull_request_template.md` | Condensed from the review checklist. |
 | `templates/README.md` | ❌ No | Explains the templates; not needed after moving them. |
+| `.gitignore` | ❌ No | Kit-repo housekeeping. Tauri projects keep their scaffold-generated one — but the `.claude/settings.local.json` line is worth adding to it. |
 
 ## Quick start
 
