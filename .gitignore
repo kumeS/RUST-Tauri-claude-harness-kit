@@ -24,6 +24,8 @@ Desktop.ini
 
 # ── Claude Code local state (machine-local, never publish) ──
 .claude/settings.local.json
+.claude
+.gitignore
 
 # ── Build/dependency dirs (if examples or tooling are ever added) ──
 node_modules/
