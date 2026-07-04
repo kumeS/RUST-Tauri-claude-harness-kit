@@ -4,6 +4,8 @@
 **Rust (Tauri 2) + React + TypeScript** desktop apps: principles, enforceable
 rules, repeatable skills, review procedures, and CI/PR templates.
 
+[![Preview](preview.png)](https://kumeS.github.io/RUST-Tauri-claude-harness-kit/)
+
 Extracted from a real, shipping Tauri 2 desktop application (~16k LOC,
 84 Rust tests + 41 vitest tests) that went through three generations of deep
 post-mortem analysis. Every rule in this kit traces to a bug that actually

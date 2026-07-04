@@ -35,7 +35,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   function setStatus(msg) { if (loading) loading.textContent = msg; }
 
   // Error sink persists across replaceWith since it's on window, not the DOM.
-  window.addEventListener('error', function(e) {
+  // Scoped to the unpacking try block only (removed in finally below) — a
+  // window-level capture listener left attached indefinitely also catches
+  // unrelated later page/extension errors (e.g. wallet SES lockdown, browser
+  // tracking-prevention warnings), which would misreport as bundle failures.
+  function onBundlerError(e) {
     var p = document.body || document.documentElement;
     var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
     d.id = '__bundler_err';
@@ -43,7 +47,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
       '[bundle] ' + (e.message || e.type) +
       (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '');
-  }, true);
+  }
+  window.addEventListener('error', onBundlerError, true);
 
   try {
     const manifestEl = document.querySelector('script[type="__bundler/manifest"]');
@@ -160,6 +165,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   } catch (err) {
     setStatus('Error unpacking: ' + err.message);
     console.error('Bundle unpack error:', err);
+  } finally {
+    window.removeEventListener('error', onBundlerError, true);
   }
 });
 
