@@ -6,7 +6,8 @@ description: Audit and polish one UI surface against the UI constitution and des
 # UI Polish
 
 A single-surface audit pass against docs/ai/03 (constitution), 04 (tokens),
-and .claude/rules/ui.md. Produces a defect list first, then fixes.
+11 (design craft), and .claude/rules/ui.md. Produces a defect list first,
+then fixes.
 
 ## Procedure
 
@@ -39,9 +40,24 @@ and .claude/rules/ui.md. Produces a defect list first, then fixes.
    alignment to the surface's grid. Compare against a native macOS app at
    the same information density (Notes, Finder inspector).
 
-7. **Fix, then verify.** Apply fixes; verify with the running app
+7. **Craft audit (docs/ai/11)** —
+   - Spacing built from flex/grid `gap`, not margin-stacked siblings?
+   - Content discipline: any filler copy, decorative stats, or data slop
+     no decision consumes? Remove or question it.
+   - Anti-slop sweep against the named list (11 §8): gradient wallpaper,
+     rounded left-border accent cards, emoji-as-icon, hand-rolled SVG
+     imagery, overused-font content face, scattered micro-animations.
+   - Typography floors: chrome ≥ 11px, content ≥ 13px, hit targets ≥ 24px;
+     `text-wrap: balance` on headings, `pretty` on paragraphs where
+     supported.
+   - One deliberate motion moment at most; everything honors
+     `prefers-reduced-motion`.
+
+8. **Fix, then verify.** Apply fixes; verify with the running app
    (screenshot the four states from step 2 where feasible). For pure-CSS
-   claims, inspect computed styles rather than trusting the diff.
+   claims, inspect computed styles rather than trusting the diff. For an
+   independent pass, dispatch the `design-critic` subagent and answer its
+   findings.
 
 ## Output
 

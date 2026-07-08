@@ -49,17 +49,24 @@ class that actually occurred in the source project.
 - [ ] New command taking caller paths → extension allowlist, no traversal?
 - [ ] Secrets still keychain-only, frontend still boolean-only?
 
-## UX (see rules/ui.md for the hard rules)
+## UX (see rules/ui.md for the hard rules; taste layer: docs/ai/11)
 
 - [ ] New command registered in the palette?
 - [ ] Destructive action separated + explicit verb labels?
 - [ ] Success shown by state change, not celebration?
 - [ ] Icon-only buttons: none added?
+- [ ] New/reshaped surface: `design-exploration` record exists (variants
+      considered, direction stated)? Anti-slop sweep done (11 §8)? Spacing
+      via `gap`, not margin stacking?
 
 ## Process
 
 - [ ] Full test suites run (backend + frontend + typecheck/build) — results
       reported verbatim, failures quoted, not summarized as "mostly passing".
+- [ ] Independent verification dispatched (`code-review` +
+      `adversarial-reviewer` for behavior changes; `permission-auditor` /
+      `design-critic` for their domains) and every Blocking finding
+      answered — fixed or rebutted?
 - [ ] Non-ASCII deliverables (docs in CJK etc.): scanned for
       confusable-character contamination (Cyrillic lookalikes, wrong-variant
       Han characters). *(Defect class: 见/也 artifacts in generated Japanese

@@ -64,3 +64,9 @@ apart later.
 
 The spec block (step 2) + the criterion→test mapping (step 4). Nothing else;
 this skill produces no implementation.
+
+A fill-in form of this output lives at `.claude/forms/feature-spec.md` —
+copy it and fill every field top to bottom. Prefer the form whenever
+structure discipline matters (weaker models, delegated implementation,
+autonomous runs): a half-filled form is visibly unfinished in a way that
+half-remembered prose is not.

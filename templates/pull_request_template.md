@@ -34,6 +34,12 @@
       table attached
 - [ ] **UI rules** — palette entry added for new commands; no icon-only
       buttons; destructive actions separated with explicit verb labels
+- [ ] **Design craft** — new/reshaped surface went through
+      design-exploration (variants + direction recorded); anti-slop sweep
+      done (docs/ai/11 §8); spacing via flex/grid `gap`
+- [ ] **Independent verification** — code-review + adversarial-reviewer
+      (and permission-auditor / design-critic where applicable) dispatched;
+      every Blocking finding fixed or rebutted below
 - [ ] **CJK/i18n** — text measuring/diffing/font paths exercised with
       non-Latin input
 

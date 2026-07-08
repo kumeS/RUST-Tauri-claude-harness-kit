@@ -46,6 +46,21 @@ jobs:
       - name: Typecheck + build
         run: npm run build
 
+  harness:
+    name: Harness (hook guard tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The hooks are promises too — this keeps their block/allow matrix
+      # honest. No-op if the project didn't adopt the hooks.
+      - name: Hook expectation matrix
+        run: |
+          if [ -f .claude/hooks/test_hooks.sh ]; then
+            bash .claude/hooks/test_hooks.sh
+          else
+            echo "no hooks adopted — skipping"
+          fi
+
   backend:
     name: Backend (cargo test + clippy)
     runs-on: ubuntu-latest

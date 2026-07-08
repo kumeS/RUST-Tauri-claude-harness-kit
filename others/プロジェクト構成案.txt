@@ -1,0 +1,937 @@
+これは **「Claude Code に読ませる知識・ルール・実行制御・サブエージェント・自動化」を階層分離したプロジェクト構成** です。
+ざっくり言うと、**CLAUDE.md は全体方針、rules は場所別ルール、skills は作業別手順、agents は専門担当、hooks/settings は強制ルール** です。
+
+---
+
+# 推奨フォルダ構成と各ファイルの役割
+
+```txt
+final-boss-project/
+├── CLAUDE.md
+├── CLAUDE.local.md
+├── AGENTS.md
+├── .mcp.json
+├── .worktreeinclude
+├── .claude/
+│   ├── settings.json
+│   ├── settings.local.json
+│   ├── rules/
+│   ├── skills/
+│   ├── agents/
+│   ├── workflows/
+│   ├── agent-memory/
+│   ├── hooks/
+│   └── output-styles/
+├── docs/
+├── src/
+└── tools/
+```
+
+---
+
+# ルート直下ファイル
+
+| ファイル               | 役割                 | 記述内容                                          |
+| ------------------ | ------------------ | --------------------------------------------- |
+| `CLAUDE.md`        | プロジェクト全体の最重要コンテキスト | 目的、技術スタック、開発方針、禁止事項、テスト・ビルドコマンド、レビュー基準を書く     |
+| `CLAUDE.local.md`  | 個人・ローカル環境用の補足      | 自分の開発環境、ローカル実行方法、個人用メモを書く。Git管理しない            |
+| `AGENTS.md`        | エージェント設計の目次        | どのサブエージェントを、どんな場面で使うかを書く                      |
+| `.mcp.json`        | MCPサーバー設定          | GitHub、DB、ブラウザ、ファイル操作など外部ツール連携を書く。秘密情報は直接書かない |
+| `.worktreeinclude` | 並列作業用ワークツリー設定      | サブエージェントが別ブランチ・別作業領域で使うべきファイルを書く              |
+
+---
+
+## `CLAUDE.md`
+
+**常に読み込ませたい共通ルール** を書きます。
+肥大化すると精度が落ちるので、200行以内が理想です。
+
+```md
+# Project Guide
+
+## Project Goal
+このプロジェクトは、〇〇を実現するためのアプリケーションである。
+
+## Tech Stack
+- Frontend: Next.js / React
+- Backend: Node.js / Hono
+- DB: PostgreSQL
+- Infra: Cloudflare / Docker
+
+## Commands
+- Install: `npm install`
+- Dev: `npm run dev`
+- Test: `npm test`
+- Lint: `npm run lint`
+- Build: `npm run build`
+
+## Rules
+- 既存仕様を壊さない
+- 変更後は必ずテストを実行する
+- 推測でAPI仕様を変更しない
+- Secretは環境変数で扱う
+
+## Done Definition
+- テストが通る
+- lintが通る
+- 型エラーがない
+- 変更理由を説明できる
+```
+
+---
+
+## `CLAUDE.local.md`
+
+**自分だけの環境情報** を書きます。
+`.gitignore` に入れて、チーム共有しません。
+
+```md
+# Local Claude Notes
+
+## Local Environment
+- OS: macOS
+- Node.js: 20.x
+- Package manager: pnpm
+
+## Local Commands
+- Dev server: `pnpm dev`
+- Local DB: `docker compose up -d`
+
+## Personal Notes
+- ローカルでは `.env.local` を使用する
+- 本番DBには直接接続しない
+```
+
+---
+
+## `AGENTS.md`
+
+サブエージェントの一覧と使い分けを書きます。
+
+```md
+# Agents
+
+## code-reviewer
+コード品質、設計、テスト観点でレビューする。
+
+## debugger
+エラー原因を特定し、最小変更で修正案を出す。
+
+## db-validator
+DBスキーマ、マイグレーション、クエリの整合性を確認する。
+
+## Usage Policy
+- 大きな変更前には code-reviewer を使う
+- エラー調査では debugger を使う
+- DB変更時は db-validator を使う
+```
+
+---
+
+## `.mcp.json`
+
+外部ツール連携設定を書きます。
+APIキーなどは直接書かず、環境変数参照にします。
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## `.worktreeinclude`
+
+並列作業環境に含めたいファイルを定義します。
+
+```txt
+CLAUDE.md
+AGENTS.md
+package.json
+pnpm-lock.yaml
+src/
+docs/
+.claude/
+```
+
+---
+
+# `.claude/` 配下
+
+`.claude/` は **Claude Code専用の運用レイヤー** です。
+ここに、ルール・スキル・エージェント・ワークフロー・フックを集約します。
+
+```txt
+.claude/
+├── settings.json
+├── settings.local.json
+├── rules/
+├── skills/
+├── agents/
+├── workflows/
+├── agent-memory/
+├── hooks/
+└── output-styles/
+```
+
+---
+
+## `.claude/settings.json`
+
+**チーム共通の強制設定** を書きます。
+特に危険コマンドの禁止、hooksの登録、権限制御を担当します。
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "rm -rf /",
+      "rm -rf *",
+      "git push --force",
+      "cat .env",
+      "cat .env.local"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      ".claude/hooks/format.sh"
+    ],
+    "PreToolUse": [
+      ".claude/hooks/protect.sh"
+    ]
+  }
+}
+```
+
+---
+
+## `.claude/settings.local.json`
+
+ローカル専用のClaude設定を書きます。
+Git管理しません。
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "npm test",
+      "npm run lint",
+      "npm run build"
+    ]
+  }
+}
+```
+
+---
+
+# `.claude/rules/`
+
+`rules/` は **場所別・文脈別の軽量ルール** です。
+`CLAUDE.md` に全部詰め込まず、関心ごとごとに分割します。
+
+```txt
+.claude/rules/
+├── testing.md
+├── api-design.md
+└── frontend/
+    └── react.md
+```
+
+画像では `tetting.md` になっていますが、意図としてはおそらく `testing.md` です。
+
+---
+
+## `.claude/rules/testing.md`
+
+テスト方針を書きます。
+
+```md
+# Testing Rules
+
+- 機能追加時は必ずテストを追加する
+- バグ修正時は再発防止テストを追加する
+- 外部APIはモックする
+- テストは読みやすさを優先する
+- 変更後は `npm test` を実行する
+```
+
+---
+
+## `.claude/rules/api-design.md`
+
+API設計ルールを書きます。
+
+```md
+# API Design Rules
+
+- REST APIはリソース指向で設計する
+- エラー形式は統一する
+- バリデーションは入口で行う
+- レスポンスには不要な内部情報を含めない
+- 破壊的変更は避ける
+
+## Error Format
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request"
+  }
+}
+```
+
+---
+
+## `.claude/rules/frontend/react.md`
+
+React / フロントエンドの実装ルールを書きます。
+
+```md
+# React Rules
+
+- Server Component と Client Component を明確に分ける
+- 状態管理は最小限にする
+- propsの型を明示する
+- UIコンポーネントは責務を小さく保つ
+- 副作用は hooks に閉じ込める
+```
+
+---
+
+# `.claude/skills/`
+
+`skills/` は **特定タスクを実行するための手順書** です。
+「レビューする」「デプロイする」「リリースする」など、作業単位で分けます。
+
+```txt
+.claude/skills/
+├── security-review/
+│   ├── SKILL.md
+│   └── checklist.md
+├── deploy/
+│   └── SKILL.md
+└── release/
+    ├── SKILL.md
+    └── changelog.tmpl
+```
+
+---
+
+## `.claude/skills/security-review/SKILL.md`
+
+セキュリティレビューの実行手順を書きます。
+
+```md
+# Security Review Skill
+
+## Purpose
+変更内容にセキュリティ上の問題がないか確認する。
+
+## Steps
+1. 認証・認可の変更を確認する
+2. 入力値検証を確認する
+3. Secretの露出がないか確認する
+4. SQL Injection / XSS / CSRF の可能性を確認する
+5. 結果を重大度つきで報告する
+
+## Output
+- Critical
+- High
+- Medium
+- Low
+- Recommendation
+```
+
+---
+
+## `.claude/skills/security-review/checklist.md`
+
+レビュー時の具体的な確認項目です。
+
+```md
+# Security Checklist
+
+- [ ] Secretがコードに含まれていない
+- [ ] 認証なしで重要APIを呼べない
+- [ ] 権限チェックがある
+- [ ] ユーザー入力を検証している
+- [ ] エラーメッセージに内部情報が出ていない
+```
+
+---
+
+## `.claude/skills/deploy/SKILL.md`
+
+デプロイ手順を書きます。
+
+```md
+# Deploy Skill
+
+## Steps
+1. `npm test` を実行
+2. `npm run lint` を実行
+3. `npm run build` を実行
+4. 環境変数を確認
+5. デプロイコマンドを実行
+6. デプロイ後の疎通確認を行う
+
+## Rollback
+問題があれば直前の安定版へ戻す。
+```
+
+---
+
+## `.claude/skills/release/SKILL.md`
+
+リリース作業の手順を書きます。
+
+```md
+# Release Skill
+
+## Steps
+1. 差分を確認する
+2. テスト・ビルドを実行する
+3. changelogを作成する
+4. versionを更新する
+5. release branchを作成する
+6. tagを作成する
+
+## Output
+- Summary
+- Breaking Changes
+- Migration Notes
+- Test Result
+```
+
+---
+
+## `.claude/skills/release/changelog.tmpl`
+
+changelog生成用テンプレートです。
+
+```md
+# Changelog
+
+## Version
+v{{version}}
+
+## Date
+{{date}}
+
+## Added
+- 
+
+## Changed
+- 
+
+## Fixed
+- 
+
+## Breaking Changes
+- 
+
+## Migration Notes
+- 
+```
+
+---
+
+# `.claude/agents/`
+
+`agents/` は **専門サブエージェントのプロンプト定義** です。
+各エージェントに役割・入力・出力形式・禁止事項を持たせます。
+
+```txt
+.claude/agents/
+├── code-reviewer.md
+├── debugger.md
+└── db-validator.md
+```
+
+---
+
+## `.claude/agents/code-reviewer.md`
+
+```md
+# Code Reviewer Agent
+
+## Role
+コード品質、保守性、設計、テスト観点でレビューする。
+
+## Focus
+- 可読性
+- 責務分離
+- 型安全性
+- テスト不足
+- 既存仕様への影響
+
+## Output Format
+1. Summary
+2. Critical Issues
+3. Suggestions
+4. Test Recommendations
+```
+
+---
+
+## `.claude/agents/debugger.md`
+
+```md
+# Debugger Agent
+
+## Role
+エラー原因を特定し、最小変更で修正案を出す。
+
+## Steps
+1. エラーログを読む
+2. 再現条件を整理する
+3. 原因候補を列挙する
+4. 最も可能性の高い原因を特定する
+5. 最小修正案を出す
+
+## Rule
+推測だけで大規模変更しない。
+```
+
+---
+
+## `.claude/agents/db-validator.md`
+
+```md
+# DB Validator Agent
+
+## Role
+DBスキーマ、マイグレーション、クエリの整合性を確認する。
+
+## Focus
+- migrationの安全性
+- indexの有無
+- 外部キー制約
+- null許容
+- 既存データへの影響
+- rollback可能性
+
+## Output
+- Risk
+- Required Fix
+- Suggested Migration
+```
+
+---
+
+# `.claude/workflows/`
+
+`workflows/` は **複数の作業をまとめて自動実行するスクリプト置き場** です。
+
+```txt
+.claude/workflows/
+└── release-train.js
+```
+
+---
+
+## `.claude/workflows/release-train.js`
+
+リリース前の確認をまとめて実行します。
+
+```js
+#!/usr/bin/env node
+
+import { execSync } from "node:child_process";
+
+const commands = [
+  "npm test",
+  "npm run lint",
+  "npm run build"
+];
+
+for (const command of commands) {
+  console.log(`Running: ${command}`);
+  execSync(command, { stdio: "inherit" });
+}
+
+console.log("Release checks completed.");
+```
+
+---
+
+# `.claude/agent-memory/`
+
+`agent-memory/` は **エージェントごとの蓄積知識** を置く場所です。
+ただし、何でも書かせるとノイズ化するので、重要な判断・再発防止・既知の落とし穴だけに絞るのがコツです。
+
+```txt
+.claude/agent-memory/
+└── debugger/
+    └── MEMORY.md
+```
+
+---
+
+## `.claude/agent-memory/debugger/MEMORY.md`
+
+```md
+# Debugger Memory
+
+## Known Issues
+- API timeoutは外部サービス遅延ではなく、DB index不足が原因になりやすい
+- payment周りのテストはmock設定漏れで失敗しやすい
+
+## Past Fixes
+- 2026-xx-xx: user_id に index を追加して検索遅延を解消
+
+## Debugging Notes
+- まずログ、次に再現条件、最後にコード差分を見る
+```
+
+---
+
+# `.claude/hooks/`
+
+`hooks/` は **Claudeの判断に関係なく実行される強制処理** です。
+安全性・フォーマット・禁止操作の最後の砦です。
+
+```txt
+.claude/hooks/
+├── format.sh
+└── protect.sh
+```
+
+---
+
+## `.claude/hooks/format.sh`
+
+ツール実行後に自動フォーマットします。
+
+```sh
+#!/usr/bin/env bash
+set -e
+
+echo "Running formatter..."
+
+if [ -f package.json ]; then
+  npm run lint --if-present
+  npm run format --if-present
+fi
+```
+
+---
+
+## `.claude/hooks/protect.sh`
+
+危険操作をブロックします。
+
+```sh
+#!/usr/bin/env bash
+set -e
+
+echo "Running protection check..."
+
+# 例：本番環境ファイルの存在をチェック
+if [ -f ".env.production" ]; then
+  echo "Warning: .env.production exists. Do not expose secrets."
+fi
+```
+
+実際には、`rm -rf`、`.env` 読み取り、強制push、本番DB操作などを防ぐ設計にします。
+
+---
+
+# `.claude/output-styles/`
+
+出力スタイルを定義します。
+
+```txt
+.claude/output-styles/
+└── review-mode.md
+```
+
+---
+
+## `.claude/output-styles/review-mode.md`
+
+```md
+# Review Mode Output Style
+
+レビュー時は以下の形式で出力する。
+
+## Summary
+変更内容の要約
+
+## Good Points
+良い点
+
+## Issues
+問題点
+
+## Required Fixes
+必須修正
+
+## Optional Suggestions
+任意改善
+
+## Final Verdict
+Approve / Request Changes
+```
+
+---
+
+# `docs/`
+
+ドキュメント置き場です。
+Claudeに仕様判断をさせるための重要な文脈になります。
+
+```txt
+docs/
+├── architecture.md
+└── decisions/
+```
+
+---
+
+## `docs/architecture.md`
+
+```md
+# Architecture
+
+## Overview
+このシステムは、Frontend / Backend / DB / External API で構成される。
+
+## Components
+- Web App
+- API Server
+- Database
+- External Services
+
+## Data Flow
+1. User submits request
+2. API validates input
+3. DB transaction runs
+4. Response is returned
+
+## Design Principles
+- 小さく分ける
+- テスト可能にする
+- 外部依存を隔離する
+```
+
+---
+
+## `docs/decisions/`
+
+設計判断の記録を置きます。
+ADR、つまり Architecture Decision Record 的に使うと強いです。
+
+```txt
+docs/decisions/
+├── 0001-use-postgresql.md
+├── 0002-use-cloudflare.md
+└── 0003-api-error-format.md
+```
+
+例：
+
+```md
+# 0001 Use PostgreSQL
+
+## Context
+リレーショナルなデータ管理が必要。
+
+## Decision
+PostgreSQLを採用する。
+
+## Reason
+- トランザクションが必要
+- index設計が柔軟
+- 運用実績が多い
+
+## Consequences
+- migration管理が必要
+```
+
+---
+
+# `src/`
+
+実装コード本体です。
+重要なディレクトリには、そのディレクトリ専用の `CLAUDE.md` を置きます。
+
+```txt
+src/
+├── api/
+│   └── CLAUDE.md
+└── payment/
+    └── CLAUDE.md
+```
+
+---
+
+## `src/api/CLAUDE.md`
+
+API領域専用のルールです。
+
+```md
+# API Area Rules
+
+## Scope
+このディレクトリはAPIルーティング、バリデーション、レスポンス整形を扱う。
+
+## Rules
+- 入力値は必ずschemaで検証する
+- エラーレスポンス形式を統一する
+- 認証・認可を省略しない
+- DB処理はservice層に分離する
+
+## Commands
+- API test: `npm run test:api`
+```
+
+---
+
+## `src/payment/CLAUDE.md`
+
+決済領域専用の慎重なルールです。
+
+```md
+# Payment Area Rules
+
+## Scope
+決済、請求、返金、サブスクリプションを扱う。
+
+## Rules
+- 金額計算は整数で扱う
+- 通貨単位を明示する
+- 決済APIのwebhook検証を必ず行う
+- 冪等性キーを使う
+- 既存データを破壊しない
+
+## Forbidden
+- テストなしで決済ロジックを変更しない
+- Secretをログに出さない
+```
+
+---
+
+# `tools/`
+
+開発補助ツール置き場です。
+Claudeに「実際に使えるコマンド」を渡す場所として重要です。
+
+```txt
+tools/
+├── scripts/
+└── prompts/
+```
+
+---
+
+## `tools/scripts/`
+
+繰り返し使うスクリプトを置きます。
+
+```txt
+tools/scripts/
+├── check-all.sh
+├── generate-types.sh
+└── reset-local-db.sh
+```
+
+例：
+
+```sh
+#!/usr/bin/env bash
+set -e
+
+npm run lint
+npm test
+npm run build
+```
+
+---
+
+## `tools/prompts/`
+
+再利用するプロンプトを置きます。
+
+```txt
+tools/prompts/
+├── bug-report.md
+├── feature-spec.md
+└── pr-review.md
+```
+
+例：
+
+```md
+# PR Review Prompt
+
+以下の観点でレビューしてください。
+
+- 仕様を満たしているか
+- 既存機能を壊していないか
+- テストが十分か
+- セキュリティ上の問題がないか
+- より単純な実装にできないか
+```
+
+---
+
+# この構成の分担まとめ
+
+| 層      | 場所                                    | 目的                     |
+| ------ | ------------------------------------- | ---------------------- |
+| 全体方針   | `CLAUDE.md`                           | 常に読ませるプロジェクト憲法         |
+| ローカル補足 | `CLAUDE.local.md`                     | 個人環境メモ                 |
+| パス別ルール | `.claude/rules/` / `src/**/CLAUDE.md` | 対象領域だけのルール             |
+| 作業手順   | `.claude/skills/`                     | セキュリティレビュー、デプロイ、リリースなど |
+| 専門担当   | `.claude/agents/`                     | レビュー、デバッグ、DB確認         |
+| 自動実行   | `.claude/hooks/`                      | フォーマット、安全確認、禁止操作       |
+| 強制設定   | `.claude/settings.json`               | 権限、hook、実行制御           |
+| 知識蓄積   | `.claude/agent-memory/`               | エージェント別の長期メモ           |
+| 設計資料   | `docs/`                               | 仕様・設計判断の保存             |
+| 補助道具   | `tools/`                              | スクリプト、再利用プロンプト         |
+
+---
+
+最初から全部作るなら、まずはこの **最小セット** で十分です。
+
+```txt
+final-boss-project/
+├── CLAUDE.md
+├── AGENTS.md
+├── .mcp.json
+├── .claude/
+│   ├── settings.json
+│   ├── rules/
+│   │   ├── api-design.md
+│   │   └── testing.md
+│   ├── skills/
+│   │   ├── security-review/
+│   │   │   └── SKILL.md
+│   │   └── deploy/
+│   │       └── SKILL.md
+│   ├── agents/
+│   │   ├── code-reviewer.md
+│   │   └── debugger.md
+│   └── hooks/
+│       ├── format.sh
+│       └── protect.sh
+├── docs/
+│   └── architecture.md
+└── src/
+    ├── api/
+    │   └── CLAUDE.md
+    └── payment/
+        └── CLAUDE.md
+```
+
+この構成のキモは、**「Claudeにお願いするルール」と「システム的に強制するルール」を分けること**です。
+`CLAUDE.md` や `rules/` は方針、`settings.json` と `hooks/` は実行ガード。ここを分けると、AI開発がかなり安定します。

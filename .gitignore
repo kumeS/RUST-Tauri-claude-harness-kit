@@ -1,9 +1,10 @@
 # Claude Harness Kit — repository .gitignore (public)
 #
-# This kit repo contains only documentation, rules, skills, and CI/PR
-# templates — so this file mostly keeps OS/editor junk and local-only state
-# out of the published history. Note: `.claude/` (rules & skills) IS part of
-# the kit and must stay tracked — no pattern here may match it.
+# This kit repo contains only documentation, rules, skills, agents, hooks,
+# and CI/PR templates — so this file mostly keeps OS/editor junk and
+# local-only state out of the published history. Note: `.claude/` IS part
+# of the kit and stays tracked — the only exceptions are the machine-local
+# entries below (settings.local.json, cache/).
 
 # ── OS junk ──────────────────────────────────────────────
 .DS_Store
@@ -24,7 +25,8 @@ Desktop.ini
 
 # ── Claude Code local state (machine-local, never publish) ──
 .claude/settings.local.json
-.gitignore
+.claude/cache/
+CLAUDE.local.md
 
 # ── Build/dependency dirs (if examples or tooling are ever added) ──
 node_modules/

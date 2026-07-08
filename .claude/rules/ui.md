@@ -1,6 +1,7 @@
 # Rules: UI
 
-Hard constraints for any UI change. Rationale lives in docs/ai/03 + 04.
+Hard constraints for any UI change. Rationale lives in docs/ai/03 + 04;
+the taste layer above these floors is docs/ai/11.
 
 1. **NEVER ship an icon-only button.** Every control has a visible label or a
    tooltip plus an accessible name.
@@ -33,3 +34,14 @@ Hard constraints for any UI change. Rationale lives in docs/ai/03 + 04.
     to the per-item menu or palette.
 14. **Heavy panels lazy-load**; error boundaries around major surfaces are
     keyed on view identity so navigation resets them.
+15. **No AI-slop tropes** (named list: docs/ai/11 §8): gradient wallpaper
+    behind chrome, rounded cards with colored left-border accents as the
+    default callout, emoji as icons, hand-rolled SVG illustrations standing
+    in for real assets, filler copy or decorative stats no decision
+    consumes. An honest labeled placeholder beats a fake asset.
+16. **Sibling UI elements are spaced with flex/grid `gap`**, never
+    margin-stacked or separated by inline flow. Inline flow is for prose
+    with occasional inline elements, not for laying out controls.
+17. **New or visually reshaped surfaces go through `design-exploration`
+    first** (3–5 structurally different variants before polish); tweaks to
+    an already-directed surface do not.

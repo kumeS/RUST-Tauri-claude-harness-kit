@@ -1,7 +1,8 @@
 # 04 — Design Tokens
 
 Token *policy* is [A] portable; the concrete values shown are [C] the source
-app's palette — replace them, keep the structure.
+app's palette — replace them, keep the structure. Tokens are the mechanics;
+how to choose well within them is docs/ai/11_design_craft.md.
 
 ## Policy
 
@@ -20,6 +21,9 @@ app's palette — replace them, keep the structure.
    control heights and stick to them.
 6. **Motion restraint.** Transitions for state changes the user caused;
    nothing autonomous. (Matches the "quiet" personality.)
+7. **One icon set.** Choose a single icon set and stroke weight, record the
+   choice here, and never mix sets on one surface. [D — decide with the
+   token pass; craft rules for icon usage live in docs/ai/11 §7.]
 
 ## Worked example — the source app's token set [FACT, values are [C]]
 
