@@ -42,6 +42,7 @@ them into your codebase.** Everything else is designed to be copied.
 | `README.md` | ❌ **No** | Describes the kit itself (this file). |
 | `AUDIT.md` | ❌ **No** | Provenance record of the source codebase. Reference reading only. |
 | `others/` | ❌ **No** | Raw source system prompts the kit was optimized against. |
+| `.nojekyll` / `_config.yml` | ❌ **No** | Kit-repo GitHub Pages plumbing: keeps every Pages/Jekyll pipeline from rendering the kit's markdown (see `.claude/agent-memory/pitfalls.md`). |
 | `CLAUDE.md` | ✅ Yes → repo root | Fill every `{{PLACEHOLDER}}`, delete non-applicable lines. |
 | `AGENTS.md` | ✅ Yes → repo root | Agent-layer index; entry point for non-Claude tools. |
 | `docs/ai/00–11_*.md` | ✅ Yes → `docs/ai/` | Reference docs, loaded on demand by AI sessions. (09 is optional agent self-notes — adopt only if useful, and replace its incident log with your own.) |

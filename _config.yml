@@ -1,0 +1,29 @@
+# GitHub Pages safety net — this site is STATIC (the self-unpacking
+# index.html); no Jekyll processing is wanted, ever.
+#
+# Two guards, because there are two pipelines:
+#   1. `.nojekyll` (repo root) — disables Jekyll on the classic
+#      "Deploy from a branch" pipeline. Primary guard.
+#   2. This file — for any pipeline that IGNORES .nojekyll and runs
+#      Jekyll anyway (actions/jekyll-build-pages, local docker checks):
+#      it excludes every markdown source in the repo, so a stray Jekyll
+#      build copies index.html + preview.png untouched and renders
+#      nothing. Kit markdown contains {{placeholders}} and verbatim
+#      system-prompt text that Liquid/theme rendering must never touch.
+#
+# Do not delete either guard. If you add a new top-level directory or a
+# new root-level .md file, add it to the exclude list below.
+# (Dot-directories like .claude/ are excluded by Jekyll automatically.)
+
+exclude:
+  - docs
+  - others
+  - templates
+  - AGENTS.md
+  - AUDIT.md
+  - CLAUDE.md
+  - CLAUDE.local.md
+  - README.md
+
+plugins: []
+theme: null
